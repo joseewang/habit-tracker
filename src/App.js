@@ -6,7 +6,8 @@ import {
   curveCardinal,
   axisBottom,
   axisRight,
-  scaleLinear
+  scaleLinear,
+  scaleBand
 } from "d3";
 
 // const data = [25, 30, 45, 60, 20];
@@ -31,19 +32,27 @@ function App() {
     const svg = select(svgRef.current);
 
     //create a scale first
-    const xScale = scaleLinear()
-      .domain([0, data.length - 1])
-      .range([0, 300]);
+    // const xScale = scaleLinear()
+    const xScale = scaleBand() //scaleban takes range and splits it into equal bands on x-axis by length of array argument for domain
+      // .domain([0, data.length - 1])
+      .domain([0, 1, 2, 3, 4, 5, 6]) //adjust domain with domain of explicit values, here we're using index values
+      .range([0, 300])
+      .padding(0.5);
 
     const yScale = scaleLinear()
       .domain([0, 150])
       .range([150, 0]);
 
+    const colorScale = scaleLinear()
+      .domain([75, 100, 150]) //start with 75 so we can map 75 to green and values beyond 75 will start turning red
+      .range(['green', 'orange', 'red']) //instead of defining numeric output value
+      .clamp(true); //make sure that values beyond 75 or 150 will still return the values green and red defined here
+
     //creating x-axis first
     //axisBottom expects a scale that transforms an input value to something else, which is usually needed for visual representation of that value
     const xAxis = axisBottom(xScale)
-      .ticks(data.length)
-      .tickFormat(index => index + 1);
+      .ticks(data.length);
+      // .tickFormat(index => index + 1);  //remove this for bar to take away the adjustments
 
     svg
       .select(".x-axis")
@@ -57,29 +66,42 @@ function App() {
       .style("transform", "translateX(300px)")
       .call(yAxis);
 
+    svg
+      .selectAll('.bar')
+      .data(data) //want a bar for every element
+      .join('rect')
+      .attr('class', 'bar')
+      .style('transform', 'scale(1, -1)') //origin of each rectangle is on top left corner, so we have to flip the bars upside-down via y-axi
+      .attr('x', (value, index) => xScale(index))
+      .attr('y', -150) //instead of yScale, have to set this at fix location
+      .attr('width', xScale.bandwidth())
+      .transition() //define what to animate after transition, so transition before height
+      .attr('fill', colorScale) //here, after transition, color changes will animate
+      .attr('height', value => 150 - yScale(value));
+
     //line will help with the d attribute of path element, which will be shaped like a line
     //have to tell our line based on the data it gets where we like to render each dot on our line
     //start with x coordinate of each dot on our line
     //y coordinate of each dot on our line
     //myLine is a function that will generate the d attribute of our path element based on the data it gets
-    const myLine = line()
-      .x((value, index) => xScale(index))
-      .y(yScale)
-      .curve(curveCardinal); //argument in curve tells how to curve
+    // const myLine = line()
+    //   .x((value, index) => xScale(index))
+    //   .y(yScale)
+    //   .curve(curveCardinal); //argument in curve tells how to curve
 
     //generate path element and attach the d attribute from myLine to this path element
     //hey svg, select all the path elements and sync it with data given here
     //need to wrap/pass [data] in an array to .data() because we don't want to new path element for every element within data, but want only 1 path element for entire data array
     //join('path') to create a new path element for every entering piece of data for every new piece of data
     //attach the attribute d to every entering and updating element with the value callback, which calls back the myLine function to return new values
-    svg
-      .selectAll(".line")
-      .data([data])
-      .join("path")
-      .attr("class", "line")
-      .attr("d", myLine)
-      .attr("fill", "none")
-      .attr("stroke", "blue");
+    // svg
+    //   .selectAll(".line")
+    //   .data([data])
+    //   .join("path")
+    //   .attr("class", "line")
+    //   .attr("d", myLine)
+    //   .attr("fill", "none")
+    //   .attr("stroke", "blue");
 
     //now have all d3 methods at disposal to manipulate dom or render circles
     //hey d3, select all the existing circle elements you find in svg and synchronize them with the data(array) that I'm giving you
