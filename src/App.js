@@ -35,7 +35,7 @@ function App() {
     // const xScale = scaleLinear()
     const xScale = scaleBand() //scaleban takes range and splits it into equal bands on x-axis by length of array argument for domain
       // .domain([0, data.length - 1])
-      .domain([0, 1, 2, 3, 4, 5, 6]) //adjust domain with domain of explicit values, here we're using index values
+      .domain(data.map((value, index) => index)) //adjust domain with domain of explicit values, here we're using index values
       .range([0, 300])
       .padding(0.5);
 
@@ -67,17 +67,34 @@ function App() {
       .call(yAxis);
 
     svg
-      .selectAll('.bar')
+      .selectAll(".bar")
       .data(data) //want a bar for every element
-      .join('rect')
-      .attr('class', 'bar')
-      .style('transform', 'scale(1, -1)') //origin of each rectangle is on top left corner, so we have to flip the bars upside-down via y-axi
-      .attr('x', (value, index) => xScale(index))
-      .attr('y', -150) //instead of yScale, have to set this at fix location
-      .attr('width', xScale.bandwidth())
+      .join("rect")
+      .attr("class", "bar")
+      .style("transform", "scale(1, -1)")
+      .attr("x", (value, index) => xScale(index))
+      .attr("y", -150) //origin of each rectangle is on top left corner, so we have to flip the bars upside-down via y-axis
+      .attr("width", xScale.bandwidth()) //instead of yScale, have to set this at fix location
+      .on("mouseenter", (event, value) => {
+        // events have changed in d3 v6:
+        // https://observablehq.com/@d3/d3v6-migration-guide#events
+        const index = svg.selectAll(".bar").nodes().indexOf(event.target);
+        svg
+          .selectAll(".tooltip")
+          .data([value])
+          .join((enter) => enter.append("text").attr("y", yScale(value) - 4))
+          .attr("class", "tooltip")
+          .text(value)
+          .attr("x", xScale(index) + xScale.bandwidth() / 2)
+          .attr("text-anchor", "middle")
+          .transition()
+          .attr('y', yScale(value) - 8)
+          .attr("opacity", 1);
+      }) //making the bars interactive to display value above bar when hovering over the bars and definte it before transition
+      .on("mouseleave", () => svg.select(".tooltip").remove())
       .transition() //define what to animate after transition, so transition before height
-      .attr('fill', colorScale) //here, after transition, color changes will animate
-      .attr('height', value => 150 - yScale(value));
+      .attr("fill", colorScale) //here, after transition, color changes will animate
+      .attr("height", (value) => 150 - yScale(value));
 
     //line will help with the d attribute of path element, which will be shaped like a line
     //have to tell our line based on the data it gets where we like to render each dot on our line
@@ -166,6 +183,9 @@ function App() {
       </button>
       <button onClick={ () => setData(data.filter(value => value <= 35 ))}>
         Filter Data
+      </button>
+      <button onClick={ () => setData([...data, Math.round(Math.random() * 100)])}>
+        Add Data
       </button>
     </React.Fragment>
   );
